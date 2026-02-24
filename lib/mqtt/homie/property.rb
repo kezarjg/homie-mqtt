@@ -214,6 +214,19 @@ module MQTT
         mqtt.subscribe("#{topic}/set") if settable?
       end
 
+      def republish
+        if device.metadata?
+          mqtt.publish("#{topic}/$name", name, retain: true, qos: 1)
+          mqtt.publish("#{topic}/$datatype", datatype.to_s, retain: true, qos: 1)
+          mqtt.publish("#{topic}/$format", format, retain: true, qos: 1) if format
+          mqtt.publish("#{topic}/$settable", "true", retain: true, qos: 1) if settable?
+          mqtt.publish("#{topic}/$retained", "false", retain: true, qos: 1) unless retained?
+          mqtt.publish("#{topic}/$unit", unit, retain: true, qos: 1) if unit
+        end
+        publish_value(value) unless value.nil?
+        subscribe
+      end
+
       def unpublish
         return unless published?
 

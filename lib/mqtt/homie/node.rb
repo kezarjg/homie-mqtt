@@ -97,6 +97,15 @@ module MQTT
         end
       end
 
+      def republish
+        if device.metadata?
+          mqtt.publish("#{topic}/$name", name, retain: true, qos: 1)
+          mqtt.publish("#{topic}/$type", @type.to_s, retain: true, qos: 1)
+          mqtt.publish("#{topic}/$properties", @properties.keys.join(","), retain: true, qos: 1)
+        end
+        @properties.each_value(&:republish)
+      end
+
       def unpublish
         return unless device.metadata?
         return unless published?

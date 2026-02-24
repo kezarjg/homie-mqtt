@@ -27,11 +27,7 @@ module MQTT
         @mqtt.set_will("#{topic}/$state", "lost", retain: true, qos: 1)
 
         @mqtt.on_reconnect do
-          each do |node|
-            node.each(&:subscribe)
-          end
-          mqtt.publish("#{topic}/$state", :init, retain: true, qos: 1)
-          mqtt.publish("#{topic}/$state", state, retain: true, qos: 1) unless state == :init
+          republish if published?
         end
 
         @mqtt.connect
@@ -183,6 +179,22 @@ module MQTT
 
       def topic_regex
         @topic_regex ||= Regexp.new("^#{Regexp.escape(topic)}/(?<node>#{REGEX})/(?<property>#{REGEX})/set$")
+      end
+
+      def republish
+        @mqtt.publish("#{topic}/$state", "init", retain: true, qos: 1)
+
+        if metadata?
+          @mqtt.publish("#{topic}/$homie", VERSION, retain: true, qos: 1)
+          @mqtt.publish("#{topic}/$name", name, retain: true, qos: 1)
+          @mqtt.publish("#{topic}/$nodes", @nodes.keys.join(","), retain: true, qos: 1)
+        end
+
+        each do |node|
+          node.republish
+        end
+
+        @mqtt.publish("#{topic}/$state", @state.to_s, retain: true, qos: 1)
       end
     end
   end
